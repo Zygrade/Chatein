@@ -89,35 +89,40 @@
             </div>
           </div>
         </div>
-        
-        <div class="msg_history">
-            <div v-for="msg in messageArray" :key="msg.id" class="incoming_msg">
-               <p>{{msg.message}}</p>
-               <br>
-            </div>
-        </div>
-
         <div class="mesgs">
-          
-          
-          <div class="type_msg">
-            <div class="input_msg_write">
-              <input @keyup.enter="saveMessage" v-model="message" type="text" class="write_msg" placeholder="Type a message" />
-              <button class="msg_send_btn" type="button"><i class="fa fa-paper-plane-o" aria-hidden="true"></i></button>
+            <div class="msg_history">
+            <div v-for="msg in messageArray" :key="msg.id" class="incoming_msg">
+                <div :class="[msg.authUser==authUser.displayName ? 'sent_withd__msg' : 'received_withd_msg']" >
+                    <div class="received_withd_msg">
+                        <p>{{msg.message}}</p>
+                        <!-- <span class="time_date">{{msg}}</span> -->
+                        <span class="time_date">{{msg.author}}</span>
+                        <br>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-      
-    </div></div>
+            <div class="type_msg">
+                <div class="input_msg_write">
+                    <input @keyup.enter="saveMessage" v-model="message" type="text" class="write_msg" placeholder="Type a message" />
+                    <button class="msg_send_btn" type="button"><i class="fa fa-paper-plane-o" aria-hidden="true"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>  
+    </div>
+</div>
 </template>
 
 <script>
+import firebase from 'firebase'
+
 export default {
     data() {
         return {
             message : null,
-            messageArray : []
+            messageArray : [],
+            authUser : {}
         }
     },
 
@@ -125,7 +130,8 @@ export default {
         saveMessage(){
             window.db.collection('chats').add({
                 message : this.message,
-                time : new Date()
+                time : new Date(),
+                author : this.authUser.displayName
             }).then(docRef => console.log('Document written with doc id : ',docRef.id))
               .catch(err => console.log('Error -> ',err));
         },
@@ -142,7 +148,27 @@ export default {
     },
 
     created(){
+
+        firebase.auth().onAuthStateChanged(user => {
+            if(user) {
+                this.authUser = user;
+            } else {
+                this.authUser = {};
+            }
+        });
         this.fetchMessage();
+    },
+
+    beforeRouteEnter (to, from, next) {
+        next( vm => {
+            firebase.auth().onAuthStateChanged(user => {
+                if(user) {
+                    next();
+                } else {
+                    vm.$router.push('/login');
+                }
+            });
+        });
     }
 }
 </script>
@@ -252,8 +278,10 @@ img{ max-width:100%;}
   width:100%;
 }
 .outgoing_msg{ overflow:hidden; margin:26px 0 26px;}
+
 .sent_msg {
-  float: right;
+  /* float: right; */
+  margin-left:50px;  
   width: 46%;
 }
 .input_msg_write input {
